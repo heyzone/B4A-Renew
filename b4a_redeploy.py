@@ -121,15 +121,19 @@ def run():
 
         print("Successfully reached target app page.")
 
-        # ── 检查 cookie 是否被服务器刷新，如有则自动更新 secret ──
-        cookies = sb.driver.get_cookies()
-        for cookie in cookies:
-            if cookie["name"] == "connect.sid" and cookie["value"] != CONNECT_SID:
-                print("Detected updated connect.sid, updating GitHub secret...")
-                new_sid = cookie["value"]
-                if update_github_secret("CONNECT_SID", new_sid):
-                    notify("🔄 connect.sid 已自动更新至 GitHub secret")
-                break
+        # ── 用 CDP 检查 cookie 是否被服务器刷新，如有则自动更新 secret ──
+        try:
+            result = sb.driver.execute_cdp_cmd("Network.getAllCookies", {})
+            cookies = result.get("cookies", [])
+            for cookie in cookies:
+                if cookie["name"] == "connect.sid" and cookie["value"] != CONNECT_SID:
+                    print("Detected updated connect.sid, updating GitHub secret...")
+                    new_sid = cookie["value"]
+                    if update_github_secret("CONNECT_SID", new_sid):
+                        notify("🔄 connect.sid 已自动更新至 GitHub secret")
+                    break
+        except Exception as e:
+            print(f"Cookie check skipped: {e}")
 
         # 滚动到底部确保左下角按钮渲染
         sb.execute_script("window.scrollTo(0, document.body.scrollHeight);")
