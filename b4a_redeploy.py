@@ -7,7 +7,7 @@ from seleniumbase import SB
 
 CONNECT_SID = os.environ["CONNECT_SID"]
 GH_TOKEN = os.environ.get("GH_TOKEN", "")
-GH_REPO = os.environ.get("GITHUB_REPOSITORY", "")  # Actions 内置变量，自动注入
+GH_REPO = os.environ.get("GITHUB_REPOSITORY", "")
 TG_TOKEN = os.environ.get("TG_TOKEN", "")
 TG_CHAT_ID = os.environ.get("TG_CHAT_ID", "")
 
@@ -36,7 +36,6 @@ def update_github_secret(secret_name, secret_value):
             "Authorization": f"token {GH_TOKEN}",
             "Accept": "application/vnd.github.v3+json"
         }
-        # 获取仓库公钥
         pk_resp = requests.get(
             f"https://api.github.com/repos/{GH_REPO}/actions/secrets/public-key",
             headers=headers,
@@ -45,13 +44,11 @@ def update_github_secret(secret_name, secret_value):
         pk_resp.raise_for_status()
         pk_data = pk_resp.json()
 
-        # 加密 secret 值
         public_key = PublicKey(pk_data["key"].encode(), encoder=Base64Encoder)
         sealed_box = SealedBox(public_key)
         encrypted = sealed_box.encrypt(secret_value.encode())
         encrypted_b64 = base64.b64encode(encrypted).decode()
 
-        # 写入 secret
         put_resp = requests.put(
             f"https://api.github.com/repos/{GH_REPO}/actions/secrets/{secret_name}",
             headers=headers,
@@ -79,23 +76,25 @@ def find_button_by_text(sb, keyword):
 def run():
     with SB(uc=True, headless=True, proxy=PROXY) as sb:
 
-        # ── 先打开目标域名，再注入 cookie ──
-        print("Opening app domain to set cookie...")
-        sb.open("https://containers.back4app.com")
+        # ── 先打开根域名页面，确保可以设置 .back4app.com 的 cookie ──
+        print("Opening back4app.com to set cookie...")
+        sb.open("https://www.back4app.com")
         sb.sleep(2)
 
-        # 用 CDP Network.setCookie 注入，避免 domain mismatch 问题
+        # domain 设为 .back4app.com（带点号），所有子域共享
         sb.driver.execute_cdp_cmd("Network.setCookie", {
             "name": "connect.sid",
             "value": CONNECT_SID,
-            "url": "https://containers.back4app.com",
+            "domain": ".back4app.com",
             "path": "/",
             "secure": True,
-            "httpOnly": True
+            "httpOnly": True,
+            "sameSite": "Lax"
         })
-        print("Cookie injected via CDP, navigating to app page...")
+        print("Cookie injected to .back4app.com (shared across subdomains)")
 
         # ── 跳转到目标 App 页面 ──
+        print("Navigating to app page...")
         sb.open(APP_URL)
         sb.sleep(5)
 
