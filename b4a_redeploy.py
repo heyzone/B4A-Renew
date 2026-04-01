@@ -99,32 +99,35 @@ def run():
         })
         print("Cookie injected to .back4app.com (shared across subdomains)")
 
-        # ── 跳转到目标 App 页面 ──
-        print("Navigating to app page...")
-        sb.open(APP_URL)
-        sb.sleep(5)
+        # ── 跳转到目标 App 页面（失败时最多重试3次）──
+        max_nav_retries = 3
+        nav_success = False
+
+        for nav_attempt in range(max_nav_retries):
+            print(f"Navigating to app page... (attempt {nav_attempt+1}/{max_nav_retries})")
+            sb.open(APP_URL)
+            sb.sleep(5)
+
+            current_url = sb.get_current_url()
+            print(f"Current URL: {current_url}")
+
+            if "login" not in current_url.lower() and APP_ID in current_url:
+                nav_success = True
+                break
+
+            print(f"Redirected to login or wrong page, retrying in 10s...")
+            sb.sleep(10)
+
+        if not nav_success:
+            sb.save_screenshot("nav_failed.png")
+            msg = f"❌ Cookie 已失效或导航失败，已重试 {max_nav_retries} 次，请手动更新 CONNECT_SID secret"
+            print(msg)
+            notify(msg)
+            raise Exception(msg)
 
         # 截图检查是否成功进入
         sb.save_screenshot("after_cookie.png")
         print("Screenshot saved: after_cookie.png")
-
-        # ── 判断是否成功到达目标页面 ──
-        current_url = sb.get_current_url()
-        print(f"Current URL: {current_url}")
-
-        if "login" in current_url.lower():
-            msg = "❌ Cookie 已失效，已被重定向到登录页，请手动更新 CONNECT_SID secret"
-            print(msg)
-            notify(msg)
-            raise Exception(msg)
-
-        if APP_ID not in current_url:
-            sb.save_screenshot("wrong_page.png")
-            msg = f"❌ 未到达目标 App 页面，当前 URL: {current_url}"
-            print(msg)
-            notify(msg)
-            raise Exception(msg)
-
         print("Successfully reached target app page.")
 
         # ── 用 CDP 检查 cookie 是否被服务器刷新，如有则自动更新 secret ──
