@@ -2,8 +2,7 @@ name: B4A Auto Redeploy
 
 on:
   schedule:
-    - cron: '55 23 * * *'
-    - cron: '55 0-14 * * *'  # 每60分钟
+    - cron: '0 * * * *'  # 每60分钟
   workflow_dispatch:
 
 jobs:
@@ -19,7 +18,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install seleniumbase requests
+          pip install seleniumbase requests pynacl
 
       - name: Install gost
         run: |
@@ -38,8 +37,8 @@ jobs:
 
       - name: Run redeploy script
         env:
-          B4A_EMAIL: ${{ secrets.B4A_EMAIL }}
-          B4A_PASSWORD: ${{ secrets.B4A_PASSWORD }}
+          CONNECT_SID: ${{ secrets.CONNECT_SID }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: python b4a_redeploy.py
