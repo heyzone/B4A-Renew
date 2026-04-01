@@ -54,7 +54,6 @@ def run():
         current_url = sb.get_current_url()
         print(f"Post-login URL: {current_url}")
 
-        # 如果还停留在登录页，说明登录失败
         if "login" in current_url.lower():
             sb.save_screenshot("login_failed.png")
             msg = "❌ 登录失败，仍停留在登录页，请检查邮箱和密码"
@@ -72,7 +71,6 @@ def run():
         current_url = sb.get_current_url()
         print(f"Current URL after navigation: {current_url}")
 
-        # 检查 URL 是否包含目标 app 的 ID
         app_id = "90148b3e-2353-459f-a1f8-e34377e389bc"
         if app_id not in current_url:
             sb.save_screenshot("wrong_page.png")
@@ -98,15 +96,7 @@ def run():
             redeploy_btn = find_button_xpath(sb, "redeploy")
 
         if redeploy_btn is None:
-            # 检查是否已经是 Upgrade 状态
-            upgrade_btn = find_button_by_text(sb, "upgrade")
-            if upgrade_btn:
-                msg = "⚠️ 未找到 Redeploy 按钮，页面已显示 Upgrade 按钮，可能上次部署仍有效"
-                print(msg)
-                notify(msg)
-                return
-
-            msg = "❌ 未找到 Redeploy App 按钮，请检查页面结构或登录状态"
+            msg = "❌ 未找到 Redeploy App 按钮，可能当前无需部署或页面结构已变化"
             print(msg)
             notify(msg)
             raise Exception(msg)
@@ -116,18 +106,26 @@ def run():
         sb.execute_script("arguments[0].scrollIntoView(true);", redeploy_btn)
         sb.sleep(1)
         redeploy_btn.click()
-        sb.sleep(5)
+
+        # ── 点击后确认：等待 Redeploy 按钮消失 ──
+        click_confirmed = False
+        for i in range(5):
+            sb.sleep(3)
+            print(f"Checking if button disappeared... attempt {i+1}/5")
+
+            btn_check = find_button_by_text(sb, "redeploy")
+            if btn_check is None:
+                click_confirmed = True
+                break
 
         # 截图确认点击后状态
         sb.save_screenshot("after_click.png")
         print("Screenshot saved: after_click.png")
 
-        # ── 确认按钮文字变化 ──
-        upgrade_btn = find_button_by_text(sb, "upgrade")
-        if upgrade_btn:
-            msg = f"✅ Redeploy 成功，按钮已变为：{upgrade_btn.text.strip()}"
+        if click_confirmed:
+            msg = "✅ Redeploy 成功，部署按钮已消失，Console 正在显示部署日志"
         else:
-            msg = "⚠️ 点击完成，但未检测到按钮文字变化，请查看截图确认"
+            msg = "⚠️ 已点击 Redeploy 按钮，但按钮未消失，请查看截图手动核对"
 
         print(msg)
         notify(msg)
