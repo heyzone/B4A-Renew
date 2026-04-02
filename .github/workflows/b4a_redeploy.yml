@@ -32,7 +32,7 @@ jobs:
           PROXY_URL: ${{ secrets.PROXY_URL }}
         run: |
           gost -L=http://:8080 -F="${PROXY_URL}" &
-          sleep 2
+          sleep 5
           echo "gost started"
 
       - name: Run redeploy script
