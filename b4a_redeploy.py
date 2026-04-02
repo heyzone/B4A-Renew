@@ -1,4 +1,5 @@
 import os
+import time
 import base64
 import requests
 from nacl.encoding import Base64Encoder
@@ -25,6 +26,24 @@ def notify(msg):
             )
         except Exception as e:
             print(f"TG notify failed: {e}")
+
+def wait_for_proxy(max_retries=10, interval=3):
+    """等待 gost 代理就绪"""
+    proxies = {"http": PROXY, "https": PROXY}
+    for i in range(max_retries):
+        try:
+            resp = requests.get(
+                "https://www.back4app.com",
+                proxies=proxies,
+                timeout=10
+            )
+            if resp.status_code < 500:
+                print(f"Proxy is ready (attempt {i+1})")
+                return True
+        except Exception as e:
+            print(f"Proxy not ready yet, retrying in {interval}s... (attempt {i+1}/{max_retries}): {e}")
+            time.sleep(interval)
+    return False
 
 def update_github_secret(secret_name, secret_value):
     """通过 GitHub API 更新 repo secret"""
@@ -80,6 +99,15 @@ def find_button_by_text(sb, keyword):
     return None
 
 def run():
+    # ── 先确认代理就绪 ──
+    print("Checking proxy availability...")
+    if not wait_for_proxy():
+        msg = "❌ 代理连接失败，gost 未就绪，请检查 PROXY_URL 配置"
+        print(msg)
+        notify(msg)
+        raise Exception(msg)
+    print("Proxy is ready, starting browser...")
+
     with SB(uc=True, headless=True, proxy=PROXY) as sb:
 
         # ── 先打开根域名页面，确保可以设置 .back4app.com 的 cookie ──
