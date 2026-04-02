@@ -152,10 +152,10 @@ def run():
         sb.save_screenshot("before_click.png")
         print("Screenshot saved: before_click.png")
 
-        # ── 查找并点击 Redeploy App 按钮（带刷新重试，最多12次，每次等待15秒）──
+        # ── 查找并点击 Redeploy App 按钮（带刷新重试，最多200次，每次等待15秒）──
         redeploy_index = None
         redeploy_text = None
-        max_retries = 12
+        max_retries = 200
         retry_interval = 15  # 秒
 
         for attempt in range(max_retries):
@@ -176,7 +176,7 @@ def run():
                 sb.sleep(3)
 
         if redeploy_index is None:
-            msg = "❌ 未找到 Redeploy App 按钮，已重试 12 次（约3分钟），可能当前无需部署或页面结构已变化"
+            msg = "❌ 未找到 Redeploy App 按钮，已重试 200 次（约50分钟），可能当前无需部署或页面结构已变化"
             print(msg)
             notify(msg)
             raise Exception(msg)
