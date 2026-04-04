@@ -11,6 +11,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # =========================
+      # 🟡 ⭐ 私有仓库
+      # =========================
+      - name: Checkout private repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/BforA-Auto
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          path: scripts
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
